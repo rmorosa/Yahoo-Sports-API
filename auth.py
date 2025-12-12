@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv() # reads .env into environment variables
 
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
@@ -85,18 +86,19 @@ def save_tokens(tokens):
     """
     with open(".env", "r") as f:
         lines = f.readlines()
-        print(lines)
+        # print(lines)
 
     with open(".env", "w") as f:
         for line in lines:
-            print(line)
+            # print(line)
             if line.startswith("ACCESS_TOKEN="):
-                print(tokens.get('access_token'))
+                # print(tokens.get('access_token'))
                 f.write(f"ACCESS_TOKEN={tokens.get('access_token')}\n")
             elif line.startswith("REFRESH_TOKEN="):
-                print(tokens.get('refresh_token'))
+                # print(tokens.get('refresh_token'))
                 f.write(f"REFRESH_TOKEN={tokens.get('refresh_token')}\n")
             else:
                 f.write(line)
+
 
 # refresh_access_token(REFRESH_TOKEN)

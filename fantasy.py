@@ -44,7 +44,7 @@ def get_mlb_2025_game_key(data):
         else:
             continue
 
-        print(meta)
+        # print(meta)
         
         if meta.get("code") == SPORT and meta.get("season") == SEASON:
             return meta.get("game_key")
@@ -57,7 +57,7 @@ def get_league(game_key):
     r = requests.get(url, headers=auth_header())
     r.raise_for_status()
     response_json = r.json()
-    print(response_json)
+    # print(response_json)
     league_id = response_json["fantasy_content"]["users"]["0"]["user"][1]["games"]["0"]["game"][1]["leagues"]["0"]["league"][0]["league_key"]
     print(league_id)
     return league_id
@@ -69,15 +69,11 @@ def get_teams(league_key):
     r.raise_for_status()
     return r.json()
 
-
-# def get_team_stats_week(team_key, week_number):
-#     """
-#     Retrieves weekly stats for a given team & week.
-#     """
-#     url = f"{BASE}/team/{team_key}/stats;type=week;week={week_number}?format=json"
-#     r = requests.get(url, headers=auth_header())
-#     r.raise_for_status()
-#     return r.json()
+def get_settings(league_key):
+    url = f"{BASE}/league/{league_key}/settings?format=json"
+    r = requests.get(url, headers=auth_header())
+    r.raise_for_status()
+    return r.json()
 
 def get_team_stats(team_key):
     """
@@ -88,16 +84,86 @@ def get_team_stats(team_key):
     r.raise_for_status()
     return r.json()
 
-
-def extract_innings_pitched(stats_json):
+def get_transactions(team_key):
     """
-    Extracts 'IP' (innings pitched) from Yahoo team stats response.
+    Retrieves weekly stats for a given team & week.
     """
-    stats = stats_json["fantasy_content"]["team"][1]["team_stats"]["stats"]
-    
-    for item in stats:
-        if item["stat"]["stat_id"] == "50":  # Yahoo stat_id 50 = IP in baseball
-            return item["stat"]["value"]
+    url = f"{BASE}/team/{team_key}?format=json"
+    r = requests.get(url, headers=auth_header())
+    r.raise_for_status()
+    return r.json()
 
-    return None
+def extract_team_info(team_json, keys):
+    """
+    Returns number of roster moves (add/drops) for a team.
+    """
+    meta = team_json["fantasy_content"]["team"][0]
+
+    result = {}
+
+    for d in meta:
+        if isinstance(d, dict):
+            for k in keys:
+                if k in d:
+                    result[k] = d[k]
+
+    return result
+
+#     return None
+def get_stat_lookup(settings_json):
+    stats = (
+        settings_json["fantasy_content"]["league"][1]["settings"][0]["stat_categories"]["stats"]
+    )
+    # print(stats)
+    stat_lookup = {}
+
+    for stat in stats:
+        # print(stat)
+        if not isinstance(stat, dict):
+            continue
+
+        s = stat["stat"]
+        # print(s)
+        stat_id = s["stat_id"]
+        name = s.get("display_name") or s.get("name") or "UNKNOWN"
+
+        stat_lookup[str(stat_id)] = name
+
+    return stat_lookup
+
+def extract_team_moves(team_json):
+    """
+    Returns number of roster moves (add/drops) for a team.
+    """
+    meta = team_json["fantasy_content"]["team"][0]
+
+    for item in meta:
+        if isinstance(item, dict):
+            if "number_of_moves" in item:
+                return int(item["number_of_moves"])
+
+    return 0  # fallback if Yahoo doesn't provide it
+
+
+def map_stats(stats_json, stat_lookup):
+    stat_list = (
+        stats_json["fantasy_content"]["team"][1]["team_stats"]["stats"]
+    )
+
+    mapped = []
+
+    for s in stat_list:
+        stat_id = s["stat"]["stat_id"]
+        value = s["stat"].get("value", "0")
+
+        stat_name = stat_lookup.get(stat_id, f"Unknown({stat_id})")
+
+        mapped.append({
+            "stat_id": stat_id,
+            "stat_name": stat_name,
+            "value": value
+        })
+
+    return mapped
+
 
